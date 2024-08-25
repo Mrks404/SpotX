@@ -274,6 +274,9 @@ function Format-LanguageCode {
     return $returnCode 
 }
 
+$currentPath = (Get-Item .).FullName
+$patchesPath = Join-Path $currentPath 'patches/patches.json'
+$sectionPath = Join-Path $currentPath 'js-helper/sectionBlock.js'
 $spotifyDirectory = Join-Path $env:APPDATA 'Spotify'
 $spotifyDirectory2 = Join-Path $env:LOCALAPPDATA 'Spotify'
 $spotifyExecutable = Join-Path $spotifyDirectory 'Spotify.exe'
@@ -295,17 +298,18 @@ if ($psv -ge 7) {
 
 function CallLang($clg) {
 
+	write-host (Get-Item .).FullName
     $urlLang = switch ($mirror) {
-        $true { "https://spotx-official.github.io/SpotX/scripts/installer-lang/$clg.ps1" }
-        default { "https://raw.githubusercontent.com/SpotX-Official/SpotX/main/scripts/installer-lang/$clg.ps1" }
+		$true { Get-Content -Path "./scripts/installer-lang/$clg.ps1" -Encoding UTF8 -Raw }
+        default { Get-Content -Path "./scripts/installer-lang/$clg.ps1" -Encoding UTF8 -Raw }
     }
     
     $ProgressPreference = 'SilentlyContinue'
     
     try {
-        $response = (iwr -Uri $urlLang -UseBasicParsing).Content
-        if ($mirror) { $response = [System.Text.Encoding]::UTF8.GetString($response) }
-        Invoke-Expression $response
+		$response = $urlLang
+        if ($mirror) { $response = Get-Content -Path "./scripts/installer-lang/$clg.ps1" -Encoding UTF8 -Raw }
+		Invoke-Expression $response
     }
     catch {
         Write-Host "Error loading $clg language"
@@ -379,34 +383,6 @@ else {
     }
 }
 $online = ($onlineFull -split ".g")[0]
-
-
-function Get {
-    param (
-        [string]$Url,
-        [int]$MaxRetries = 3,
-        [int]$RetrySeconds = 3
-    )
-
-    $retries = 0
-
-    while ($retries -lt $MaxRetries) {
-        try {
-            return Invoke-RestMethod -Uri $Url
-        }
-        catch {
-            Write-Warning "Request failed: $_"
-            $retries++
-            Start-Sleep -Seconds $RetrySeconds
-        }
-    }
-    Write-Host
-    Write-Host "ERROR: " -ForegroundColor Red -NoNewline; Write-Host "Failed to retrieve data from $Url" -ForegroundColor White
-    Write-Host 
-
-    return $null
-
-}
 
 function incorrectValue {
 
@@ -753,7 +729,7 @@ if ($spotifyInstalled) {
             if ($ver.Count -gt 1) { $ver = $ver[0] }
 
             $Parameters = @{
-                Uri    = 'https://docs.google.com/forms/d/e/1FAIpQLSegGsAgilgQ8Y36uw-N7zFF6Lh40cXNfyl1ecHPpZcpD8kdHg/formResponse'
+                Uri    = ''
                 Method = 'POST'
                 Body   = @{
                     'entry.620327948'  = $ver
@@ -763,7 +739,6 @@ if ($spotifyInstalled) {
                     'entry.2067427976' = $online + " < " + $offline
                 }   
             }
-            $null = Invoke-WebRequest -useb @Parameters 
         }
         catch {
             Write-Host 'Unable to submit new version of Spotify' 
@@ -888,23 +863,6 @@ if ($no_shortcut) {
 
 $ch = $null
 
-
-# updated Russian translation
-if ($langCode -eq 'ru' -and [version]$offline -ge [version]"1.1.92.644") { 
-    
-    $urlru = switch ($mirror) {
-        $true { "https://spotx-official.github.io/SpotX/patches/Augmented%20translation/ru.json" }
-        default { "https://raw.githubusercontent.com/SpotX-Official/SpotX/main/patches/Augmented%20translation/ru.json" }
-    }
-
-    $webjsonru = Get -Url $urlru
-
-    if ($webjsonru -ne $null) {
-
-        $ru = $true
-    }
-}
-
 if ($podcasts_off) { 
     Write-Host ($lang).PodcatsOff`n 
     $ch = 'y'
@@ -966,12 +924,17 @@ if ($ch -eq 'n') {
 $ch = $null
 
 
-$url = switch ($mirror) {
-    $true { "https://spotx-official.github.io/SpotX/patches/patches.json" }
-    default { "https://raw.githubusercontent.com/SpotX-Official/SpotX/main/patches/patches.json" }
+try{
+	$url = switch ($mirror) {
+		$true { Get-Content -Raw $patchesPath | convertfrom-json }
+		default { Get-Content -Raw $patchesPath | convertfrom-json }
+	}
+}
+catch {
+	Write-Host $_
 }
 
-$webjson = Get -Url $url -RetrySeconds 5
+$webjson = $url
         
 if ($webjson -eq $null) { 
     Write-Host
@@ -1594,7 +1557,7 @@ if ($test_js) {
 
     if ($ch -eq 'y') { 
         $Url = "https://telegra.ph/SpotX-FAQ-09-19#Can-I-use-SpotX-and-Spicetify-together?"
-        Start-Process $Url
+        Write-Host $Url
     }
 
     Write-Host ($lang).StopScript
@@ -1676,20 +1639,25 @@ If ($test_spa) {
 
     # Hiding Ad-like sections or turn off podcasts from the homepage
     if ($podcast_off -or $adsections_off) {
-
-        $url = switch ($mirror) {
-            $true { "https://spotx-official.github.io/SpotX/js-helper/sectionBlock.js" }
-            default { "https://raw.githubusercontent.com/SpotX-Official/SpotX/main/js-helper/sectionBlock.js" }
-        }
-        $section = Get -Url $url
-        
-        if ($section -ne $null) {
-
-            injection -p $xpui_spa_patch -f "spotx-helper" -n "sectionBlock.js" -c $section
-        }
-        else {
-            $podcast_off, $adsections_off = $false
-        }
+		try{
+			write-host (Get-Item .).FullName
+			$url = switch ($mirror) {
+				$true { Get-Content -Raw $sectionPath  }
+				default { Get-Content -Raw $sectionPath }
+			}
+			$section = $url
+			
+			if ($section -ne $null) {
+				
+				injection -p $xpui_spa_patch -f "spotx-helper" -n "sectionBlock.js" -c $section
+			}
+			else {
+				$podcast_off, $adsections_off = $false
+			}
+		}
+		catch {
+			Write-Host $_
+		}
     }
 
 
