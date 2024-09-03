@@ -277,6 +277,9 @@ function Format-LanguageCode {
 $currentPath = (Get-Item .).FullName
 $patchesPath = Join-Path $currentPath 'patches/patches.json'
 $sectionPath = Join-Path $currentPath 'js-helper/sectionBlock.js'
+$goofyPath = Join-Path $currentPath 'js-helper/goofyHistory.js'
+$ruPath = Join-Path $currentPath 'patches/Augmented%20translation/ru.json'
+
 $spotifyDirectory = Join-Path $env:APPDATA 'Spotify'
 $spotifyDirectory2 = Join-Path $env:LOCALAPPDATA 'Spotify'
 $spotifyExecutable = Join-Path $spotifyDirectory 'Spotify.exe'
@@ -298,17 +301,11 @@ if ($psv -ge 7) {
 
 function CallLang($clg) {
 
-	write-host (Get-Item .).FullName
-    $urlLang = switch ($mirror) {
-		$true { Get-Content -Path "./scripts/installer-lang/$clg.ps1" -Encoding UTF8 -Raw }
-        default { Get-Content -Path "./scripts/installer-lang/$clg.ps1" -Encoding UTF8 -Raw }
-    }
-    
+	
     $ProgressPreference = 'SilentlyContinue'
     
     try {
-		$response = $urlLang
-        if ($mirror) { $response = Get-Content -Path "./scripts/installer-lang/$clg.ps1" -Encoding UTF8 -Raw }
+        $response = Get-Content -Path "./scripts/installer-lang/$clg.ps1" -Encoding UTF8 -Raw 
 		Invoke-Expression $response
     }
     catch {
@@ -863,6 +860,24 @@ if ($no_shortcut) {
 
 $ch = $null
 
+
+# updated Russian translation
+if ($langCode -eq 'ru' -and [version]$offline -ge [version]"1.1.92.644") { 
+    
+    $webjsonru = Get-Content -Raw $ruPath
+
+    if ($webjsonru -ne $null) {
+
+        $ru = $true
+    }
+    else
+    {
+        write-host "webjson ru null"
+        Pause
+        Exit
+    }
+}
+
 if ($podcasts_off) { 
     Write-Host ($lang).PodcatsOff`n 
     $ch = 'y'
@@ -923,18 +938,12 @@ if ($ch -eq 'n') {
 
 $ch = $null
 
-
 try{
-	$url = switch ($mirror) {
-		$true { Get-Content -Raw $patchesPath | convertfrom-json }
-		default { Get-Content -Raw $patchesPath | convertfrom-json }
-	}
+	$webjson = Get-Content -Raw $patchesPath | convertfrom-json
 }
 catch {
 	Write-Host $_
 }
-
-$webjson = $url
         
 if ($webjson -eq $null) { 
     Write-Host
@@ -1125,7 +1134,7 @@ function Helper($paramname) {
 
             if (!($plus)) { Move-Json -n "Plus", "AlignedCurationSavedIn" -t $Enable -f $Disable }
 
-            if (!($topsearchbar) -and [version]$offline -le [version]"1.2.44.405") { 
+            if (!($topsearchbar)) { 
                 Move-Json -n "GlobalNavBar", "RecentSearchesDropdown" -t $Enable -f $Disable 
                 $Custom.GlobalNavBar.value = "control"
             }
@@ -1279,6 +1288,11 @@ function Helper($paramname) {
 
             $VarJs = $webjson.VariousJs
 
+
+            if ($topsearchbar) { 
+                Remove-Json -j $VarJs -p "fixTitlebarHeight"
+            }
+
             if (!($lyrics_block)) { Remove-Json -j $VarJs -p "lyrics-block" }
 
             else { 
@@ -1308,7 +1322,7 @@ function Helper($paramname) {
             }
 
             if ($urlform_goofy -and $idbox_goofy) {
-                $webjson.VariousJs.goofyhistory.replace = "`$1 const urlForm=" + '"' + $urlform_goofy + '"' + ";const idBox=" + '"' + $idbox_goofy + '"' + $webjson.VariousJs.goofyhistory.replace
+                $webjson.VariousJs.goofyhistory.replace = $webjson.VariousJs.goofyhistory.replace -f "`"$urlform_goofy`"", "`"$idbox_goofy`""
             }
             else { Remove-Json -j $VarJs -p "goofyhistory" }
             
@@ -1638,31 +1652,39 @@ If ($test_spa) {
 
     # Forced exp
     extract -counts 'one' -method 'zip' -name 'xpui.js' -helper 'ForcedExp' -add $webjson.others.byspotx.add
-    
 
     # Hiding Ad-like sections or turn off podcasts from the homepage
     if ($podcast_off -or $adsections_off) {
-		try{
-			write-host (Get-Item .).FullName
-			$url = switch ($mirror) {
-				$true { Get-Content -Raw $sectionPath  }
-				default { Get-Content -Raw $sectionPath }
-			}
-			$section = $url
-			
-			if ($section -ne $null) {
-				
-				injection -p $xpui_spa_patch -f "spotx-helper" -n "sectionBlock.js" -c $section
-			}
-			else {
-				$podcast_off, $adsections_off = $false
-			}
-		}
-		catch {
-			Write-Host $_
-		}
-    }
 
+        $section = Get-Content -Raw $sectionPath
+        
+        if ($section -ne $null) {
+
+            injection -p $xpui_spa_patch -f "spotx-helper" -n "sectionBlock.js" -c $section
+        }
+        else {
+            write-host "sectionBlock was null"
+            Pause
+            Exit
+            $podcast_off, $adsections_off = $false
+        }
+    }
+	
+    # goofy History
+    if ($urlform_goofy -and $idbox_goofy) {
+
+        $goofy = Get-Content -Raw $goofyPath
+        
+        if ($goofy -ne $null) {
+
+            injection -p $xpui_spa_patch -f "spotx-helper" -n "goofyHistory.js" -c $goofy
+        }
+        else {
+            write-host "goofyHistory was null"
+            Pause
+            Exit
+        }
+    }
 
     extract -counts 'one' -method 'zip' -name 'xpui.js' -helper 'VariousofXpui-js' 
 
