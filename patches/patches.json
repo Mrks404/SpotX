@@ -1937,7 +1937,7 @@
         "lyrics-block": {
             "version": {
                 "fr": "1.1.70",
-                "to": ""
+                "to": "1.2.40"
             },
             "match": "(?:\\(?await )?.\\.build.{20,60}encodeURIComponent.{20,140}\"\\/track\\/{trackId}.+?send\\(\\)(?:\\)\\.body)?",
             "replace": "{}"
