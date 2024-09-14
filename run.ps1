@@ -90,7 +90,7 @@ param
 
     [Parameter(HelpMessage = 'Static color for lyrics.')]
     [ArgumentCompleter({ param($cmd, $param, $wordToComplete)
-            [array] $validValues = @('default', 'red', 'orange', 'yellow', 'spotify', 'blue', 'purple', 'strawberry', 'pumpkin', 'sandbar', 'radium', 'oceano', 'royal', 'github', 'discord', 'drot', 'forest', 'fresh', 'zing', 'pinkle', 'krux', 'blueberry', 'postlight', 'relish', 'turquoise')
+            [array] $validValues = @('blue', 'blueberry', 'discord', 'drot', 'default', 'forest', 'fresh', 'github', 'lavender', 'orange', 'postlight', 'pumpkin', 'purple', 'radium', 'relish', 'red', 'sandbar', 'spotify', 'spotify#2', 'strawberry', 'turquoise', 'yellow', 'zing', 'pinkle', 'krux', 'royal', 'oceano')
             $validValues -like "*$wordToComplete*"
         })]
     [string]$lyrics_stat,
@@ -122,40 +122,48 @@ function Format-LanguageCode {
         [string]$LanguageCode
     )
     
-    
     $supportLanguages = @(
-        'en', 'ru', 'it', 'tr', 'ka', 'pl', 'es', 'fr', 'hi', 'pt', 'id', 'vi', 'ro', 'de', 'hu', 'zh', 'zh-TW', 'ko', 'ua', 'fa', 'sr', 'lv', 'bn', 'el', 'fi', 'ja', 'fil', 'sv', 'sk', 'ta', 'cs'
+        'bn', 'cs', 'de', 'el', 'en', 'es', 'fa', 'fi', 'fil', 'fr', 'hi', 'hu', 
+        'id', 'it', 'ja', 'ka', 'ko', 'lv', 'pl', 'pt', 'ro', 'ru', 'sk', 'sr', 
+        'sv', 'ta', 'tr', 'ua', 'vi', 'zh', 'zh-TW'
     )
-    
     
     # Trim the language code down to two letter code.
     switch -Regex ($LanguageCode) {
+        '^bn' {
+            $returnCode = 'bn'
+            break
+        }
+        '^cs' {
+            $returnCode = 'cs'
+            break
+        }
+        '^de' {
+            $returnCode = 'de'
+            break
+        }
+        '^el' {
+            $returnCode = 'el'
+            break
+        }
         '^en' {
             $returnCode = 'en'
             break
         }
-        '^(ru|py)' {
-            $returnCode = 'ru'
-            break
-        }
-        '^it' {
-            $returnCode = 'it'
-            break
-        }
-        '^tr' {
-            $returnCode = 'tr'
-            break
-        }
-        '^ka' {
-            $returnCode = 'ka'
-            break
-        }
-        '^pl' {
-            $returnCode = 'pl'
-            break
-        }
         '^es' {
             $returnCode = 'es'
+            break
+        }
+        '^fa' {
+            $returnCode = 'fa'
+            break
+        }
+        '^fi$' {
+            $returnCode = 'fi'
+            break
+        }
+        '^fil' {
+            $returnCode = 'fil'
             break
         }
         '^fr' {
@@ -166,28 +174,76 @@ function Format-LanguageCode {
             $returnCode = 'hi'
             break
         }
-        '^pt' {
-            $returnCode = 'pt'
+        '^hu' {
+            $returnCode = 'hu'
             break
         }
         '^id' {
             $returnCode = 'id'
             break
         }
-        '^vi' {
-            $returnCode = 'vi'
+        '^it' {
+            $returnCode = 'it'
+            break
+        }
+        '^ja' {
+            $returnCode = 'ja'
+            break
+        }
+        '^ka' {
+            $returnCode = 'ka'
+            break
+        }
+        '^ko' {
+            $returnCode = 'ko'
+            break
+        }
+        '^lv' {
+            $returnCode = 'lv'
+            break
+        }
+        '^pl' {
+            $returnCode = 'pl'
+            break
+        }
+        '^pt' {
+            $returnCode = 'pt'
             break
         }
         '^ro' {
             $returnCode = 'ro'
             break
         }
-        '^de' {
-            $returnCode = 'de'
+        '^(ru|py)' {
+            $returnCode = 'ru'
             break
         }
-        '^hu' {
-            $returnCode = 'hu'
+        '^sk' {
+            $returnCode = 'sk'
+            break
+        }
+        '^sr' {
+            $returnCode = 'sr'
+            break
+        }
+        '^sv' {
+            $returnCode = 'sv'
+            break
+        }
+        '^ta' {
+            $returnCode = 'ta'
+            break
+        }
+        '^tr' {
+            $returnCode = 'tr'
+            break
+        }
+        '^ua' {
+            $returnCode = 'ua'
+            break
+        }
+        '^vi' {
+            $returnCode = 'vi'
             break
         }
         '^(zh|zh-CN)$' {
@@ -196,63 +252,6 @@ function Format-LanguageCode {
         }
         '^zh-TW' {
             $returnCode = 'zh-TW'
-            break
-        }
-        '^ko' {
-            $returnCode = 'ko'
-            break
-        }
-        '^ua' {
-            $returnCode = 'ua'
-            break
-        }
-        '^fa' {
-            $returnCode = 'fa'
-            break
-        }
-        '^sr' {
-            $returnCode = 'sr'
-            break
-        }
-        '^lv' {
-            $returnCode = 'lv'
-            break
-        }
-        '^bn' {
-            $returnCode = 'bn'
-            break
-        }
-        '^el' {
-            $returnCode = 'el'
-            break
-        }
-        '^fi$' {
-            $returnCode = 'fi'
-            break
-        }
-        '^ja' {
-            $returnCode = 'ja'
-            break
-        
-        }
-        '^fil' {
-            $returnCode = 'fil'
-            break
-        }
-        '^sv' {
-            $returnCode = 'sv'
-            break
-        }        
-        '^sk' {
-            $returnCode = 'sk'
-            break
-        }
-        '^ta' {
-            $returnCode = 'ta'
-            break
-        }
-        '^cs' {
-            $returnCode = 'cs'
             break
         }
         Default {
@@ -1041,55 +1040,6 @@ function Helper($paramname) {
             $contents = "disablesentry"
             $json = $webjson.others
         }
-        "Lyrics-color" { 
-            $pasttext = $webjson.others.themelyrics.theme.$lyrics_stat.pasttext
-            $current = $webjson.others.themelyrics.theme.$lyrics_stat.current
-            $next = $webjson.others.themelyrics.theme.$lyrics_stat.next
-            $background = $webjson.others.themelyrics.theme.$lyrics_stat.background
-            $hover = $webjson.others.themelyrics.theme.$lyrics_stat.hover
-            $maxmatch = $webjson.others.themelyrics.theme.$lyrics_stat.maxmatch
-
-            if ([version]$offline -lt [version]"1.1.99.871") { $lyrics = "lyricscolor1"; $contents = $lyrics }
-            if ([version]$offline -ge [version]"1.1.99.871") { $lyrics = "lyricscolor2"; $contents = $lyrics }
-
-            # xpui.js or xpui-routes-lyrics.js
-            if ([version]$offline -ge [version]"1.1.99.871") {
-
-                $full_previous = Mod-F -template $webjson.others.$lyrics.add[0] -arguments $pasttext 
-                $full_current = Mod-F -template $webjson.others.$lyrics.add[1] -arguments $current
-                $full_next = Mod-F -template $webjson.others.$lyrics.add[2] -arguments $next
-                $full_lyrics = Mod-F -template $webjson.others.$lyrics.add[3] -arguments $full_previous, $full_current, $full_next
-                $webjson.others.$lyrics.add[3] = $full_lyrics
-                $webjson.others.$lyrics.replace[1] = '$1' + '"' + $pasttext + '"'  
-                $webjson.others.$lyrics.replace[2] = '$1' + '"' + $current + '"'  
-                $webjson.others.$lyrics.replace[3] = '$1' + '"' + $next + '"'  
-                $webjson.others.$lyrics.replace[4] = '$1' + '"' + $background + '"'
-                $webjson.others.$lyrics.replace[5] = '$1' + '"' + $hover + '"'   
-                $webjson.others.$lyrics.replace[6] = '$1' + '"' + $maxmatch + '"'
-                if ([version]$offline -ge [version]"1.2.6.861") {
-                    $webjson.others.$lyrics.replace[7] = '$1' + '"' + $maxmatch + '"' + '$3'
-                }
-                else {
-                    $webjson.others.$lyrics.match = $webjson.others.$lyrics.match | Where-Object { $_ -ne $webjson.others.$lyrics.match[7] }
-                }
-                if ([version]$offline -ge [version]"1.2.3.1107") {
-                    $webjson.others.$lyrics.replace[8] = $webjson.others.$lyrics.replace[8] -f $background
-                }
-            }
-
-            # xpui-routes-lyrics.css
-            if ([version]$offline -lt [version]"1.1.99.871") {
-                $webjson.others.$lyrics.replace[0] = '$1' + $pasttext
-                $webjson.others.$lyrics.replace[1] = '$1' + $current
-                $webjson.others.$lyrics.replace[2] = '$1' + $next
-                $webjson.others.$lyrics.replace[3] = $background 
-                $webjson.others.$lyrics.replace[4] = '$1' + $hover 
-                $webjson.others.$lyrics.replace[5] = '$1' + $maxmatch 
-            }
-            $name = "patches.json.others."
-            $n = $name_file
-            $json = $webjson.others
-        }
         "Discriptions" {  
             # Add discriptions (xpui-desktop-modals.js)
 
@@ -1479,31 +1429,39 @@ function injection {
         [string]$FolderInArchive,
 
         [Alias("n")]
-        [string]$FileName,
+        [string[]]$FileNames, 
 
         [Alias("c")]
-        [string]$FileContent
+        [string[]]$FileContents,
+
+        [Alias("i")]
+        [string[]]$FilesToInject  # force only specific file/files to connect index.html otherwise all will be connected
     )
 
     $folderPathInArchive = "$($FolderInArchive)/"
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [System.IO.Compression.ZipFile]::Open($ArchivePath, 'Update')
-    $stream = $null
+    
     try {
-        $entry = $archive.GetEntry($folderPathInArchive + $FileName)
-        if ($entry -eq $null) {
-            $stream = $archive.CreateEntry($folderPathInArchive + $FileName).Open()
-        }
-        else {
-            $stream = $entry.Open()
-        }
+        for ($i = 0; $i -lt $FileNames.Length; $i++) {
+            $fileName = $FileNames[$i]
+            $fileContent = $FileContents[$i]
 
-        $writer = [System.IO.StreamWriter]::new($stream)
-        $writer.Write($FileContent)
+            $entry = $archive.GetEntry($folderPathInArchive + $fileName)
+            if ($entry -eq $null) {
+                $stream = $archive.CreateEntry($folderPathInArchive + $fileName).Open()
+            }
+            else {
+                $stream = $entry.Open()
+            }
 
-        $writer.Dispose()
-        $stream.Dispose()
+            $writer = [System.IO.StreamWriter]::new($stream)
+            $writer.Write($fileContent)
+
+            $writer.Dispose()
+            $stream.Dispose()
+        }
 
         $indexEntry = $archive.Entries | Where-Object { $_.FullName -eq "index.html" }
         if ($indexEntry -ne $null) {
@@ -1513,22 +1471,33 @@ function injection {
             $reader.Dispose()
             $indexStream.Dispose()
 
+            $headTagIndex = $indexContent.IndexOf("</head>")
             $scriptTagIndex = $indexContent.IndexOf("<script")
 
-            if ($scriptTagIndex -ge 0) {
+            if ($headTagIndex -ge 0 -or $scriptTagIndex -ge 0) {
+                $filesToInject = if ($FilesToInject) { $FilesToInject } else { $FileNames }
 
-                $modifiedIndexContent = $indexContent.Insert($scriptTagIndex, "<script defer=`"defer`" src=`"/$FolderInArchive/$FileName`"></script>")
+                foreach ($fileName in $filesToInject) {
+                    if ($fileName.EndsWith(".js")) {
+                        $modifiedIndexContent = $indexContent.Insert($scriptTagIndex, "<script defer=`"defer`" src=`"/$FolderInArchive/$fileName`"></script>")
+                        $indexContent = $modifiedIndexContent
+                    }
+                    elseif ($fileName.EndsWith(".css")) {
+                        $modifiedIndexContent = $indexContent.Insert($headTagIndex, "<link href=`"/$FolderInArchive/$fileName`" rel=`"stylesheet`">")
+                        $indexContent = $modifiedIndexContent
+                    }
+                }
 
                 $indexEntry.Delete()
                 $newIndexEntry = $archive.CreateEntry("index.html").Open()
                 $indexWriter = [System.IO.StreamWriter]::new($newIndexEntry)
-                $indexWriter.Write($modifiedIndexContent)
+                $indexWriter.Write($indexContent)
                 $indexWriter.Dispose()
                 $newIndexEntry.Dispose()
 
             }
             else {
-                Write-Warning "<script tag was not found in the index.html file in the archive."
+                Write-Warning "<script or </head> tag was not found in the index.html file in the archive."
             }
         }
         else {
@@ -1541,6 +1510,7 @@ function injection {
         }
     }
 }
+
 
 
 Write-Host ($lang).ModSpoti`n
@@ -1689,6 +1659,21 @@ If ($test_spa) {
         }
     }
 
+    # Static color for lyrics
+    if ($lyrics_stat) {
+        $rulesContent = Get -Url (Get-Link -e "/css-helper/lyrics-color/rules.css")
+        $colorsContent = Get -Url (Get-Link -e "/css-helper/lyrics-color/colors.css")
+
+        $colorsContent = $colorsContent -replace '{{past}}', "$($webjson.others.themelyrics.theme.$lyrics_stat.pasttext)"
+        $colorsContent = $colorsContent -replace '{{current}}', "$($webjson.others.themelyrics.theme.$lyrics_stat.current)"
+        $colorsContent = $colorsContent -replace '{{next}}', "$($webjson.others.themelyrics.theme.$lyrics_stat.next)"
+        $colorsContent = $colorsContent -replace '{{hover}}', "$($webjson.others.themelyrics.theme.$lyrics_stat.hover)"
+        $colorsContent = $colorsContent -replace '{{background}}', "$($webjson.others.themelyrics.theme.$lyrics_stat.background)"
+        $colorsContent = $colorsContent -replace '{{musixmatch}}', "$($webjson.others.themelyrics.theme.$lyrics_stat.maxmatch)"
+
+        injection -p $xpui_spa_patch -f "spotx-helper/lyrics-color" -n @("rules.css", "colors.css") -c @($rulesContent, $colorsContent) -i "rules.css"
+
+    }
     extract -counts 'one' -method 'zip' -name 'xpui.js' -helper 'VariousofXpui-js' 
 
     if ($devtools -and [version]$offline -ge [version]"1.2.35.663") {
@@ -1698,29 +1683,6 @@ If ($test_spa) {
     # Hide Collaborators icon
     if (!($hide_col_icon_off) -and !($exp_spotify)) {
         extract -counts 'one' -method 'zip' -name 'xpui-routes-playlist.js' -helper 'Collaborators'
-    }
-
-    # Static color for lyrics
-    if ($lyrics_stat) {
-        # old
-        if ([version]$offline -lt [version]"1.1.99.871") { 
-            $name_file = 'xpui-routes-lyrics.css'
-            extract -counts 'one' -method 'zip' -name $name_file -helper 'Lyrics-color'
-        }
-        # new 
-        if ([version]$offline -ge [version]"1.1.99.871") {
-            $contents = "fixcsslyricscolor2"
-            extract -counts 'one' -method 'zip' -name 'xpui.css' -helper 'FixCss'
-            if ([version]$offline -le [version]"1.2.2.582") {
-                $name_file = 'xpui-routes-lyrics.js'   
-                extract -counts 'one' -method 'zip' -name $name_file -helper 'Lyrics-color'
-            }
-        }
-        # mini lyrics
-        if ([version]$offline -ge [version]"1.2.0.1155") {
-            $name_file = 'xpui.js'   
-            extract -counts 'one' -method 'zip' -name $name_file -helper 'Lyrics-color'
-        }
     }
 
     # Add discriptions (xpui-desktop-modals.js)
@@ -1747,12 +1709,8 @@ If ($test_spa) {
             $css += $webjson.others.veryhighstream.add
         }
     }
-    # Full screen lyrics
-    if ($lyrics_stat -and [version]$offline -ge [version]"1.2.3.1107" -and [version]$offline -le [version]"1.2.44.405") {
-        $css += $webjson.others.lyricscolor2.add[3]
-    }
+
     if ($null -ne $css ) { extract -counts 'one' -method 'zip' -name 'xpui.css' -add $css }
-    
     
     # Old UI fix
     $contents = "fix-old-theme"
