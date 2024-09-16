@@ -444,11 +444,11 @@ function downloadSp() {
     
     try { 
         if ($curl_check) {
-            $stcode = curl.exe -Is -w "%{http_code} \n" -o /dev/null $web_Url --retry 2 --ssl-no-revoke
+            $stcode = curl.exe -Is -w "%{http_code} \n" -o /dev/null -k $web_Url --retry 2 --ssl-no-revoke
             if ($stcode.trim() -ne "200") {
                 Write-Host "Curl error code: $stcode"; throw
             }
-            curl.exe -q $web_Url -o $local_Url --progress-bar --retry 3 --ssl-no-revoke
+            curl.exe -q -k $web_Url -o $local_Url --progress-bar --retry 3 --ssl-no-revoke
             return
         }
         if (!($curl_check ) -and $null -ne (Get-Module -Name BitsTransfer -ListAvailable)) {
@@ -472,11 +472,11 @@ function downloadSp() {
         try { 
 
             if ($curl_check) {
-                $stcode = curl.exe -Is -w "%{http_code} \n" -o /dev/null $web_Url --retry 2 --ssl-no-revoke
+                $stcode = curl.exe -Is -w "%{http_code} \n" -o /dev/null -k $web_Url --retry 2 --ssl-no-revoke
                 if ($stcode.trim() -ne "200") {
                     Write-Host "Curl error code: $stcode"; throw
                 }
-                curl.exe -q $web_Url -o $local_Url --progress-bar --retry 3 --ssl-no-revoke
+                curl.exe -q -k $web_Url -o $local_Url --progress-bar --retry 3 --ssl-no-revoke
                 return
             }
             if (!($curl_check ) -and $null -ne (Get-Module -Name BitsTransfer -ListAvailable) -and !($curl_check )) {
@@ -1087,9 +1087,12 @@ function Helper($paramname) {
 
             if (!($plus)) { Move-Json -n "Plus", "AlignedCurationSavedIn" -t $Enable -f $Disable }
 
-            if (!$topsearchbar -or [version]$offline -ge [version]"1.2.46.462") {
+            if (!$topsearchbar) {
                 Move-Json -n "GlobalNavBar" -t $Enable -f $Disable 
                 $Custom.GlobalNavBar.value = "control"
+                if ([version]$offline -le [version]"1.2.45.454") {
+                    Move-Json -n "RecentSearchesDropdown" -t $Enable -f $Disable 
+                }
             }
 
             if (!($funnyprogressbar)) { Move-Json -n 'HeBringsNpb' -t $Enable -f $Disable }
