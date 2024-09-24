@@ -45,6 +45,9 @@ param
     
     [Parameter(HelpMessage = 'Installation without ad blocking for premium accounts.')]
     [switch]$premium,
+
+    [Parameter(HelpMessage = 'Disable Spotify autostart on Windows boot.')]
+    [switch]$DisableStartup,
     
     [Parameter(HelpMessage = 'Automatic launch of Spotify after installation is complete.')]
     [switch]$start_spoti,
@@ -278,6 +281,9 @@ $patchesPath = Join-Path $currentPath 'patches/patches.json'
 $sectionPath = Join-Path $currentPath 'js-helper/sectionBlock.js'
 $goofyPath = Join-Path $currentPath 'js-helper/goofyHistory.js'
 $ruPath = Join-Path $currentPath 'patches/Augmented%20translation/ru.json'
+$lyricsRulesPath = Join-Path $currentPath '/css-helper/lyrics-color/rules.css'
+$lyricsColorsPath = Join-Path $currentPath '/css-helper/lyrics-color/colors.css'
+$loginSpaPath = Join-Path $currentPath '/res/login.spa'
 
 $spotifyDirectory = Join-Path $env:APPDATA 'Spotify'
 $spotifyDirectory2 = Join-Path $env:LOCALAPPDATA 'Spotify'
@@ -363,7 +369,7 @@ if (!($version -and $version -match $match_v)) {
     }
     else {  
         # Recommended version for Win 10-12
-        $onlineFull = "1.2.46.462.gf57913e0-290"
+        $onlineFull = "1.2.47.364.gf06e5cee-667"
     }
 }
 else {
@@ -719,10 +725,9 @@ if ($spotifyInstalled) {
             $country = [System.Globalization.RegionInfo]::CurrentRegion.EnglishName
 
             $txt = [IO.File]::ReadAllText($spotifyExecutable)
-            $regex = "(\d+)\.(\d+)\.(\d+)\.(\d+)(\.g[0-9a-f]{8})"
-            $v = $txt | Select-String $regex -AllMatches
-            $ver = $v.Matches.Value[0]
-            if ($ver.Count -gt 1) { $ver = $ver[0] }
+            $regex = "(?<![\w\-])(\d+)\.(\d+)\.(\d+)\.(\d+)(\.g[0-9a-f]{8})(?![\w\-])"
+            $matches = [regex]::Matches($txt, $regex)
+            $ver = $matches[0].Value
 
             $Parameters = @{
                 Uri    = ''
@@ -1664,8 +1669,8 @@ If ($test_spa) {
 
     # Static color for lyrics
     if ($lyrics_stat) {
-        $rulesContent = Get -Url (Get-Link -e "/css-helper/lyrics-color/rules.css")
-        $colorsContent = Get -Url (Get-Link -e "/css-helper/lyrics-color/colors.css")
+        $rulesContent = Get-Content -Raw $lyricsRulesPath
+        $colorsContent = Get-Content -Raw $lyricsColorsPath
 
         $colorsContent = $colorsContent -replace '{{past}}', "$($webjson.others.themelyrics.theme.$lyrics_stat.pasttext)"
         $colorsContent = $colorsContent -replace '{{current}}', "$($webjson.others.themelyrics.theme.$lyrics_stat.current)"
@@ -1791,6 +1796,44 @@ if ($rexex1 -and $rexex2 -and $rexex3) {
 
 # Binary patch
 extract -counts 'exe' -helper 'Binary'
+
+# fix login for old versions
+if ([version]$offline -ge [version]"1.1.87.612" -and [version]$offline -le [version]"1.2.5.1006") {
+    $login_spa = Join-Path (Join-Path $env:APPDATA 'Spotify\Apps') 'login.spa'
+    Copy-Item $loginSpaPath -Destination $login_spa
+}
+
+# Disable Startup client
+if ($DisableStartup) {
+    $prefsPath = "$env:APPDATA\Spotify\prefs"
+    $keyPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+    $keyName = "Spotify"
+
+    # delete key in registry
+    if (Get-ItemProperty -Path $keyPath -Name $keyName -ErrorAction SilentlyContinue) {
+        Remove-ItemProperty -Path $keyPath -Name $keyName -Force
+    } 
+
+    # create new prefs
+    if (-not (Test-Path $prefsPath)) {
+        $content = @"
+app.autostart-configured=true
+app.autostart-mode="off"
+"@
+        [System.IO.File]::WriteAllLines($prefsPath, $content, [System.Text.UTF8Encoding]::new($false))
+    }
+    
+    # update prefs
+    else {
+        $content = [System.IO.File]::ReadAllText($prefsPath)
+        if (-not $content.EndsWith("`n")) {
+            $content += "`n"
+        }
+        $content += 'app.autostart-mode="off"'
+        [System.IO.File]::WriteAllText($prefsPath, $content, [System.Text.UTF8Encoding]::new($false))
+    }
+
+}
 
 # Start Spotify
 if ($start_spoti) { Start-Process -WorkingDirectory $spotifyDirectory -FilePath $spotifyExecutable }
