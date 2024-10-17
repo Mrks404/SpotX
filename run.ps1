@@ -360,7 +360,7 @@ if ($version) {
 
 $old_os = $win7 -or $win8 -or $win8_1
 
-# Recommended version for Win 7-8.1
+# Recommended version for Win 7-8.1 
 $last_win7_full = "1.2.5.1006.g22820f93-1078"
 
 if (!($version -and $version -match $match_v)) {
@@ -368,8 +368,8 @@ if (!($version -and $version -match $match_v)) {
         $onlineFull = $last_win7_full
     }
     else {  
-        # Recommended version for Win 10-12
-        $onlineFull = "1.2.47.366.g0d3bd570-1418"
+        # Recommended version for Win 10-12 
+        $onlineFull = "1.2.48.405.gf2c48e6f-2008" 
     }
 }
 else {
