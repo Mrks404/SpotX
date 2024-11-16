@@ -369,7 +369,7 @@ if (!($version -and $version -match $match_v)) {
     }
     else {  
         # Recommended version for Win 10-12 
-        $onlineFull = "1.2.50.333.g77514274-364" 
+        $onlineFull = "1.2.50.335.g5e2860a8-546" 
     }
 }
 else {
