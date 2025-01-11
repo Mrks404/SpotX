@@ -369,7 +369,7 @@ if (!($version -and $version -match $match_v)) {
     }
     else {  
         # Recommended version for Win 10-12 
-        $onlineFull = "1.2.52.442.g01893f92-587" 
+        $onlineFull = "1.2.53.440.g7b2f582a-58" 
     }
 }
 else {
@@ -1078,6 +1078,9 @@ function Helper($paramname) {
 
             # carousel is temporarily disabled because it causes lags in the main menu
             Move-Json -n 'HomeCarousels' -t $Enable -f $Disable
+
+            # ability to toggle the visibility of the playlist column is temporarily disabled because it does not save its state
+            Move-Json -n 'TogglePlaylistColumns' -t $Enable -f $Disable
  
             if ($podcast_off) { Move-Json -n 'HomePin' -t $Enable -f $Disable }
 
