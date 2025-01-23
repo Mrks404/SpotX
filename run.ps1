@@ -360,7 +360,7 @@ if ($version) {
 
 $old_os = $win7 -or $win8 -or $win8_1
 
-# Recommended version for Win 7-8.1 
+# latest tested version for Win 7-8.1 
 $last_win7_full = "1.2.5.1006.g22820f93-1078"
 
 if (!($version -and $version -match $match_v)) {
@@ -368,8 +368,8 @@ if (!($version -and $version -match $match_v)) {
         $onlineFull = $last_win7_full
     }
     else {  
-        # Recommended version for Win 10-12 
-        $onlineFull = "1.2.53.440.g7b2f582a-58" 
+        # latest tested version for Win 10-12 
+        $onlineFull = "1.2.55.235.g5eaa0904-463" 
     }
 }
 else {
@@ -749,6 +749,7 @@ if ($spotifyInstalled) {
         catch {
             Write-Host 'Unable to submit new version of Spotify' 
             Write-Host "error description: "$Error[0]
+            Write-Host
         }
 
         if ($confirm_spoti_recomended_over -or $confirm_spoti_recomended_uninstall) {
@@ -1038,9 +1039,9 @@ function Helper($paramname) {
             $n = "xpui.css"
             $json = $webjson.others
         }
-        "RemovertlCssmin" { 
-            # Remove RTL and minification of all *.css
-            $contents = "removertl-cssmin"
+        "Cssmin" { 
+            # Minification of all *.css
+            $contents = "cssmin"
             $json = $webjson.others
         }
         "DisableSentry" { 
@@ -1240,6 +1241,8 @@ function Helper($paramname) {
 
             if ($not_block_update) { Remove-Json -j $binary -p 'block_update' }
 
+            if ($premium) { Remove-Json -j $binary -p 'block_slots_2', 'block_slots_3' }
+
             $name = "patches.json.others.binary."
             $n = "Spotify.exe"
             $contents = $webjson.others.binary.psobject.properties.name
@@ -1264,6 +1267,7 @@ function Helper($paramname) {
 
             $VarJs = $webjson.VariousJs
 
+            if ($premium) { Remove-Json -j $VarJs -p 'mock', 'upgradeButton', 'upgradeMenu' }
 
             if ($topsearchbar -or ([version]$offline -ne [version]"1.2.45.451" -and [version]$offline -ne [version]"1.2.45.454")) { 
                 Remove-Json -j $VarJs -p "fixTitlebarHeight"
@@ -1332,6 +1336,7 @@ function Helper($paramname) {
                     { -not $podcast_off -and $adsections_off } { "section" }
                 }
                 $webjson.VariousJs.block_section.replace = $webjson.VariousJs.block_section.replace -f $type
+                $global:type = $type
             }
             else {
                 Remove-Json -j $VarJs -p 'block_section'
@@ -1367,7 +1372,7 @@ function Helper($paramname) {
                         $paramdata = $paramdata -replace $json.$PSItem.match[$numbers], $json.$PSItem.replace[$numbers] 
                     }
                     else { 
-                        $notlog = "MinJs", "MinJson", "Removertl", "RemovertlCssmin"
+                        $notlog = "MinJs", "MinJson", "Cssmin"
                         if ($paramname -notin $notlog) {
     
                             Write-Host $novariable -ForegroundColor red -NoNewline 
@@ -1732,6 +1737,10 @@ If ($test_spa) {
             $css += $webjson.others.veryhighstream.add
         }
     }
+    # block subfeeds
+    if ($global:type -eq "all" -or $global:type -eq "podcast") {
+        $css += $webjson.others.block_subfeeds.add
+    }
 
     if ($null -ne $css ) { extract -counts 'one' -method 'zip' -name 'xpui.css' -add $css }
     
@@ -1740,7 +1749,7 @@ If ($test_spa) {
     extract -counts 'one' -method 'zip' -name 'xpui.css' -helper "FixCss"
 
     # Remove RTL and minification of all *.css
-    extract -counts 'more' -name '*.css' -helper 'RemovertlCssmin'
+    extract -counts 'more' -name '*.css' -helper 'Cssmin'
     
     # licenses.html minification
 
@@ -1796,11 +1805,13 @@ If (!(Test-Path $start_menu)) {
 $ANSI = [Text.Encoding]::GetEncoding(1251)
 $old = [IO.File]::ReadAllText($spotifyExecutable, $ANSI)
 
-$rexex1 = $old -notmatch $webjson.others.binary.block_update.add
-$rexex2 = $old -notmatch $webjson.others.binary.block_slots.add
-$rexex3 = $old -notmatch $webjson.others.binary.block_gabo.add
+$regex1 = $old -notmatch $webjson.others.binary.block_update.add
+$regex2 = $old -notmatch $webjson.others.binary.block_slots.add
+$regex3 = $old -notmatch $webjson.others.binary.block_slots_2.add
+$regex4 = $old -notmatch $webjson.others.binary.block_slots_3.add
+$regex5 = $old -notmatch $webjson.others.binary.block_gabo.add
 
-if ($rexex1 -and $rexex2 -and $rexex3) {
+if ($regex1 -and $regex2 -and $regex3 -and $regex4 -and $regex5) {
 
     if (Test-Path -LiteralPath $exe_bak) { 
         Remove-Item $exe_bak -Recurse -Force
