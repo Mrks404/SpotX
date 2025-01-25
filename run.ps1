@@ -922,13 +922,14 @@ if ($block_update_off) {
     $ch = 'n'
 }
 if (!($block_update_on) -and !($block_update_off)) {
-    do {
-        $text_upd = [string]($lang).UpdSelect + $upd
-        $ch = Read-Host -Prompt $text_upd
-        Write-Host
-        if (!($ch -eq 'n' -or $ch -eq 'y')) { incorrectValue } 
-    }
-    while ($ch -notmatch '^y$|^n$')
+    #do {
+    #    $text_upd = [string]($lang).UpdSelect + $upd
+    #    $ch = Read-Host -Prompt $text_upd
+    #    Write-Host
+    #    if (!($ch -eq 'n' -or $ch -eq 'y')) { incorrectValue } 
+    #}
+    #while ($ch -notmatch '^y$|^n$')
+	$ch = 'y'
 }
 if ($ch -eq 'y') { $not_block_update = $false }
 
