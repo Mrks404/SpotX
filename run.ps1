@@ -369,7 +369,7 @@ if (!($version -and $version -match $match_v)) {
     }
     else {  
         # latest tested version for Win 10-12 
-        $onlineFull = "1.2.55.235.g5eaa0904-463" 
+        $onlineFull = "1.2.56.497.g3da60fab-1632" 
     }
 }
 else {
@@ -1218,9 +1218,9 @@ function Helper($paramname) {
             else { $disableTextVariable = "['" + ($disableNames -join "','") + "']" }
 
             $replacements = @(
-                @("EnableExp=[]", "EnableExp=$enableTextVariable"),
-                @("DisableExp=[]", "DisableExp=$disableTextVariable"),
-                @("CustomExp=[]", "CustomExp=$customTextVariable")
+                @("enable:[]", "enable:$enableTextVariable"),
+                @("disable:[]", "disable:$disableTextVariable"),
+                @("custom:[]", "custom:$customTextVariable")
             )
 
             foreach ($replacement in $replacements) {
