@@ -129,13 +129,17 @@ function Format-LanguageCode {
     )
     
     $supportLanguages = @(
-        'bn', 'cs', 'de', 'el', 'en', 'es', 'fa', 'fi', 'fil', 'fr', 'hi', 'hu', 
+        'be', 'bn', 'cs', 'de', 'el', 'en', 'es', 'fa', 'fi', 'fil', 'fr', 'hi', 'hu', 
         'id', 'it', 'ja', 'ka', 'ko', 'lv', 'pl', 'pt', 'ro', 'ru', 'sk', 'sr', 
         'sv', 'ta', 'tr', 'ua', 'vi', 'zh', 'zh-TW'
     )
     
     # Trim the language code down to two letter code.
     switch -Regex ($LanguageCode) {
+        '^be' {
+            $returnCode = 'be'
+            break
+        }
         '^bn' {
             $returnCode = 'bn'
             break
@@ -372,7 +376,7 @@ if (!($version -and $version -match $match_v)) {
     }
     else {  
         # latest tested version for Win 10-12 
-        $onlineFull = "1.2.59.514.g834e17d4-578" 
+        $onlineFull = "1.2.59.518.g42b3652d-247" 
     }
 }
 else {
