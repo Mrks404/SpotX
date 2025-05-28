@@ -376,7 +376,7 @@ if (!($version -and $version -match $match_v)) {
     }
     else {  
         # latest tested version for Win 10-12 
-        $onlineFull = "1.2.63.394.g126b0d89-2269"
+        $onlineFull = "1.2.64.408.g0a9b557c-184"
     }
 }
 else {
@@ -1583,6 +1583,147 @@ function injection {
 }
 
 
+function Extract-WebpackModules {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InputFile
+    )
+
+    $scriptStart = Get-Date
+    Write-Debug "=== Script execution started ==="
+    Write-Debug "Input file: $InputFile"
+
+    function Encode-UTF16LE {
+        param([byte[]]$Bytes)
+        $str = [System.Text.Encoding]::UTF8.GetString($Bytes)
+        [System.Text.Encoding]::Unicode.GetBytes($str)
+    }
+
+    $StartMarker = [System.Text.Encoding]::UTF8.GetBytes("var __webpack_modules__={")
+    $EndMarker = [System.Text.Encoding]::UTF8.GetBytes("//# sourceMappingURL=xpui-modules.js.map")
+
+    [byte[]]$fileContent = [System.IO.File]::ReadAllBytes($InputFile)
+
+    $isUTF16LE = $false
+    if ($fileContent.Length -ge 2 -and $fileContent[0] -eq 0xFF -and $fileContent[1] -eq 0xFE) {
+        $isUTF16LE = $true
+    }
+    elseif ($fileContent.Length -gt 100 -and $fileContent[1] -eq 0x00) {
+        $isUTF16LE = $true
+    }
+    if (-not $isUTF16LE) {
+        Write-Error "File is not in UTF-16LE format: $InputFile"
+        exit 1
+    }
+
+    $searchStartMarker = Encode-UTF16LE -Bytes $StartMarker
+    $searchEndMarker = Encode-UTF16LE -Bytes $EndMarker
+
+    function IndexOfBytes($haystack, $needle, [int]$startIndex = 0) {
+        if ($startIndex -lt 0) { $startIndex = 0 }
+        $haystackLength = $haystack.Length
+        $needleLength = $needle.Length
+        $searchLimit = $haystackLength - $needleLength
+        if ($searchLimit -lt $startIndex) { return -1 }
+        $firstNeedleByte = $needle[0]
+        for ($i = $startIndex; $i -le $searchLimit; $i++) {
+            if ($haystack[$i] -eq $firstNeedleByte) {
+                $found = $true
+                for ($j = 1; $j -lt $needleLength; $j++) {
+                    if ($haystack[$i + $j] -ne $needle[$j]) {
+                        $found = $false
+                        break
+                    }
+                }
+                if ($found) { return $i }
+            }
+        }
+        return -1
+    }
+
+    $startIdx = IndexOfBytes $fileContent $searchStartMarker 2
+    if ($startIdx -eq -1) {
+        Write-Error "Start marker not found"
+        exit 1
+    }
+    Write-Debug "Start marker found at index $startIdx"
+
+    $endMarkerSearchOffset = $startIdx + $searchStartMarker.Length
+    $endIdx = IndexOfBytes $fileContent $searchEndMarker $endMarkerSearchOffset
+    if ($endIdx -eq -1) {
+        Write-Error "End marker not found after index $endMarkerSearchOffset"
+        exit 1
+    }
+    Write-Debug "End marker found at absolute index $endIdx"
+
+    $endDataIdx = $endIdx + $searchEndMarker.Length
+    $length = $endDataIdx - $startIdx
+
+    Write-Debug "Decoding data from UTF-16LE..."
+    $decodedString = [System.Text.Encoding]::Unicode.GetString($fileContent, $startIdx, $length)
+
+    $scriptEnd = Get-Date
+    $duration = [math]::Round(($scriptEnd - $scriptStart).TotalSeconds, 1)
+    Write-Debug "=== Execution completed in $duration seconds ==="
+
+    return $decodedString
+}
+
+
+function Update-ZipEntry {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [System.IO.Compression.ZipArchive]$archive,
+        [Parameter(Mandatory)]
+        [string]$entryName,
+        [string]$newEntryName = $null,
+        [string]$prepend = $null,
+        [scriptblock]$contentTransform = $null
+    )
+
+    $entry = $archive.GetEntry($entryName)
+    if ($entry) {
+        Write-Verbose "Updating entry: $entryName"
+        $streamReader = $null
+        $content = ''
+        try {
+            $streamReader = New-Object System.IO.StreamReader($entry.Open(), [System.Text.Encoding]::UTF8)
+            $content = $streamReader.ReadToEnd()
+        }
+        finally {
+            if ($null -ne $streamReader) {
+                $streamReader.Close()
+            }
+        }
+
+        $entry.Delete()
+
+        if ($prepend) { $content = "$prepend`n$content" }
+        if ($contentTransform) { $content = & $contentTransform $content }
+
+        $finalEntryName = if ($newEntryName) { $newEntryName } else { $entryName }
+        Write-Verbose "Creating new entry: $finalEntryName"
+
+        $newEntry = $archive.CreateEntry($finalEntryName)
+        $streamWriter = $null
+        try {
+            $streamWriter = New-Object System.IO.StreamWriter($newEntry.Open(), [System.Text.Encoding]::UTF8)
+            $streamWriter.Write($content)
+            $streamWriter.Flush()
+        }
+        finally {
+            if ($null -ne $streamWriter) {
+                $streamWriter.Close()
+            }
+        }
+        Write-Verbose "Entry $finalEntryName updated successfully."
+    }
+    else {
+        Write-Warning "Entry '$entryName' not found in archive."
+    }
+}
+
 
 Write-Host ($lang).ModSpoti`n
 
@@ -1633,13 +1774,67 @@ if (!($test_js) -and !($test_spa)) {
     Exit
 }
 
-If ($test_spa) {
+if ($test_spa) {
+    
+    Add-Type -Assembly 'System.IO.Compression.FileSystem'
+    
+    # Check for the presence of xpui.js in the xpui.spa archive
+
+    $archive_spa = $null
+
+    try {
+        $archive_spa = [System.IO.Compression.ZipFile]::OpenRead($xpui_spa_patch)
+        $xpuiJsEntry = $archive_spa.GetEntry('xpui.js')
+        $xpuiSnapshotEntry = $archive_spa.GetEntry('xpui-snapshot.js')
+
+        if (($null -eq $xpuiJsEntry) -and ($null -ne $xpuiSnapshotEntry)) {
+        
+            $snapshot_x64 = Join-Path $spotifyDirectory 'v8_context_snapshot.bin'
+            $snapshot_arm64 = Join-Path $spotifyDirectory 'v8_context_snapshot.arm64.bin'
+
+            $v8_snapshot = switch ($true) {
+                { Test-Path $snapshot_x64 } { $snapshot_x64; break }
+                { Test-Path $snapshot_arm64 } { $snapshot_arm64; break }
+                default { $null }
+            }
+
+            if ($v8_snapshot) {
+                $modules = Extract-WebpackModules -InputFile $v8_snapshot
+
+                $firstLine = ($modules -split "`r?`n" | Select-Object -First 1)
+
+                $archive_spa.Dispose()
+                $archive_spa = [System.IO.Compression.ZipFile]::Open($xpui_spa_patch, [System.IO.Compression.ZipArchiveMode]::Update)
+
+                Update-ZipEntry -archive $archive_spa -entryName 'xpui-snapshot.js' -prepend $firstLine -newEntryName 'xpui.js' -Verbose:$VerbosePreference
+            
+                Update-ZipEntry -archive $archive_spa -entryName 'xpui-snapshot.css' -newEntryName 'xpui.css' -Verbose:$VerbosePreference
+            
+                Update-ZipEntry -archive $archive_spa -entryName 'index.html' -contentTransform {
+                    param($c)
+                    $c = $c -replace 'xpui-snapshot.js', 'xpui.js'
+                    $c = $c -replace 'xpui-snapshot.css', 'xpui.css'
+                    return $c
+                } -Verbose:$VerbosePreference
+            }
+            else {
+                Write-Warning "v8_context_snapshot file not found"
+            }
+        }
+    }
+    catch {
+        Write-Warning "Error: $($_.Exception.Message)"
+    }
+    finally {
+        if ($null -ne $archive_spa) {
+            $archive_spa.Dispose()
+        }
+    }
 
     $bak_spa = Join-Path (Join-Path $env:APPDATA 'Spotify\Apps') 'xpui.bak'
     $test_bak_spa = Test-Path -Path $bak_spa
 
     # Make a backup copy of xpui.spa if it is original
-    Add-Type -Assembly 'System.IO.Compression.FileSystem'
     $zip = [System.IO.Compression.ZipFile]::Open($xpui_spa_patch, 'update')
     $entry = $zip.GetEntry('xpui.js')
     $reader = New-Object System.IO.StreamReader($entry.Open())
@@ -1749,7 +1944,7 @@ If ($test_spa) {
     
     if ([version]$offline -ge [version]"1.2.28.581" -and [version]$offline -le [version]"1.2.57.463") {
         
-        if ([version]$offline -ge [version]"1.2.45.454") { $typefile = "xpui.js"}
+        if ([version]$offline -ge [version]"1.2.45.454") { $typefile = "xpui.js" }
 
         else { $typefile = "xpui-routes-search.js" }
 
