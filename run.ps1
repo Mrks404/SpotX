@@ -376,7 +376,7 @@ if (!($version -and $version -match $match_v)) {
     }
     else {  
         # latest tested version for Win 10-12 
-        $onlineFull = "1.2.65.255.g85e641b4-609"
+        $onlineFull = "1.2.66.447.g4e37e896-540"
     }
 }
 else {
@@ -1100,6 +1100,9 @@ function Helper($paramname) {
             # causes lags in the main menu 1.2.44-1.2.56
             if ([version]$offline -le [version]'1.2.56.502') { Move-Json -n 'HomeCarousels' -t $Enable -f $Disable }
 
+            # disable search suggestions
+            Move-Json -n 'SearchSuggestions' -t $Enable -f $Disable
+
             # disable new scrollbar
             Move-Json -n 'NewOverlayScrollbars' -t $Enable -f $Disable
 
@@ -1167,7 +1170,11 @@ function Helper($paramname) {
                 }
                 else {
                     if (!($rightsidebarcolor)) { Remove-Json -j $Enable -p 'RightSidebarColors' }
-                    if ($old_lyrics) { Remove-Json -j $Enable -p 'RightSidebarLyrics' } 
+                    
+                    if ($old_lyrics) { 
+                        Remove-Json -j $Enable -p 'RightSidebarLyrics' 
+                        $Custom.LyricsVariationsInNPV.value = "CONTROL"
+                    } 
                 }
             }
             if (!$premium) { Remove-Json -j $Enable -p 'RemoteDownloads' }
@@ -1893,7 +1900,7 @@ if ($test_spa) {
     extract -counts 'one' -method 'zip' -name 'xpui.js' -helper 'ForcedExp' -add $webjson.others.byspotx.add
 
     # Hiding Ad-like sections or turn off podcasts from the homepage
-    if ($podcast_off -or $adsections_off) {
+    if ($podcast_off -or $adsections_off -or $canvashome_off) {
 
         $section = Get-Content -Raw $sectionPath
         
