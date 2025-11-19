@@ -379,7 +379,7 @@ if (!($version -and $version -match $match_v)) {
     }
     else {  
         # latest tested version for Win 10-12 
-        $onlineFull = "1.2.76.297.ga70a30a3-4"
+        $onlineFull = "1.2.76.298.g2316a870-2"
     }
 }
 else {
@@ -2245,7 +2245,10 @@ $regex1 = $old -notmatch $webjson.others.binary.block_update.add
 $regex2 = $old -notmatch $webjson.others.binary.block_slots.add
 $regex3 = $old -notmatch $webjson.others.binary.block_slots_2.add
 $regex4 = $old -notmatch $webjson.others.binary.block_slots_3.add
-$regex5 = $old -notmatch $webjson.others.binary.block_gabo.add
+$regex5 = $old -notmatch $(
+    if ([version]$offline -gt [version]'1.2.73.474') { $webjson.others.binary.block_gabo2.add }
+    else { $webjson.others.binary.block_gabo.add }
+)
 
 if ($regex1 -and $regex2 -and $regex3 -and $regex4 -and $regex5) {
 
