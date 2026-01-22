@@ -679,7 +679,7 @@ if (Test-Path -Path $hostsFilePath) {
 
 # Unique directory name based on time
 Push-Location -LiteralPath ([System.IO.Path]::GetTempPath())
-New-Item -Type Directory -Name "SpotX_Temp-$(Get-Date -UFormat '%Y-%m-%d_%H-%M-%S')" | Convert-Path | Set-Location
+New-Item -Type Directory -Name "Spotify_Temp-$(Get-Date -UFormat '%Y-%m-%d_%H-%M-%S')" | Convert-Path | Set-Location
 
 if ($premium) {
     Write-Host ($lang).Prem`n
@@ -1866,16 +1866,18 @@ function Get-PEArchitectureOffsets {
         [byte[]]$bytes,
         [int]$fileHeaderOffset
     )
-    $machineType = [System.BitConverter]::ToUInt16($bytes, $fileHeaderOffset)
-    $result = @{ Architecture = $null; DataDirectoryOffset = 0 }
-    switch ($machineType) {
-        0x8664 { $result.Architecture = 'x64'; $result.DataDirectoryOffset = 112 }
-        0xAA64 { $result.Architecture = 'ARM64'; $result.DataDirectoryOffset = 112 }
-        0x014c { $result.Architecture = 'x86'; $result.DataDirectoryOffset = 96 }
-        default { $result.Architecture = 'Unknown'; $result.DataDirectoryOffset = $null }
-    }
-    $result.MachineType = $machineType
-    return $result
+    # $machineType = [System.BitConverter]::ToUInt16($bytes, $fileHeaderOffset)
+    #$result = @{ Architecture = $null; DataDirectoryOffset = 0 }
+    #switch ($machineType) {
+    #    0x8664 { $result.Architecture = 'x64'; $result.DataDirectoryOffset = 112 }
+    #    0xAA64 { $result.Architecture = 'ARM64'; $result.DataDirectoryOffset = 112 }
+    #    0x014c { $result.Architecture = 'x86'; $result.DataDirectoryOffset = 96 }
+    #    default { $result.Architecture = 'Unknown'; $result.DataDirectoryOffset = $null }
+    #}
+    #$result.MachineType = $machineType
+    $result = @{ Architecture = 'x64'; DataDirectoryOffset = 112 }
+    
+	return $result
 }
 
 function Remove-Sign {
@@ -1892,7 +1894,8 @@ function Remove-Sign {
         $optionalHeaderOffset = $fileHeaderOffset + 20
         $archInfo = Get-PEArchitectureOffsets -bytes $bytes -fileHeaderOffset $fileHeaderOffset
         if ($archInfo.DataDirectoryOffset -eq $null) {
-            Write-Warning "Unsupported architecture type ($($archInfo.MachineType.ToString('X'))) in file '$(Split-Path $filePath -Leaf)'."
+            #Write-Warning "Unsupported architecture type ($($archInfo.MachineType.ToString('X'))) in file '$(Split-Path $filePath -Leaf)'."
+            Write-Warning "Unsupported architecture in file '$(Split-Path $filePath -Leaf)'."
             return $false
         }
         $dataDirectoryOffsetWithinOptionalHeader = $archInfo.DataDirectoryOffset
