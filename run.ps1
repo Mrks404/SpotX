@@ -942,13 +942,16 @@ if ($podcasts_on) {
     $ch = 'n'
 }
 if (!($podcasts_off) -and !($podcasts_on)) {
-
+    
+    <#
     do {
         $ch = Read-Host -Prompt ($lang).PodcatsSelect
         Write-Host
         if (!($ch -eq 'n' -or $ch -eq 'y')) { incorrectValue }
     }
     while ($ch -notmatch '^y$|^n$')
+    #>
+    $podcast_off = $false
 }
 if ($ch -eq 'y') { $podcast_off = $true }
 
