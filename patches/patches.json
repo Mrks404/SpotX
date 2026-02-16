@@ -597,7 +597,7 @@
                 "native_description": "Enable ad count feedback in NPV",
                 "version": {
                     "fr": "1.2.59",
-                    "to": ""
+                    "to": "1.2.82"
                 }
             },
             "SaxLeaderboardAds": {
@@ -606,7 +606,7 @@
                 "native_description": "Enable SAX Leaderboard Ad Format",
                 "version": {
                     "fr": "1.2.62",
-                    "to": ""
+                    "to": "1.2.82"
                 }
             },
             "EmbeddedAdVisibilityLogging": {
@@ -733,6 +733,14 @@
                     "fr": "1.2.78",
                     "to": ""
                 }
+            },
+            "MadeForYou": {
+                "name": "enableMadeForYouEntryPoint",
+                "description": "Show 'Made For You' entry point in the left sidebar",
+                "version": {
+                    "fr": "1.1.67",
+                    "to": "1.1.95"
+                }
             }
         },
         "EnableExp": {
@@ -797,15 +805,6 @@
                 "version": {
                     "fr": "1.1.89",
                     "to": ""
-                }
-            },
-            "MadeForYou": {
-                "name": "enableMadeForYouEntryPoint",
-                "description": "Show 'Made For You' entry point in the left sidebar",
-                "native_description": "Show 'Made For You' entry point in the left sidebar",
-                "version": {
-                    "fr": "1.1.67",
-                    "to": "1.1.95"
                 }
             },
             "ClearAllDownloads": {
@@ -2621,6 +2620,14 @@
             },
             "match": "(includeYourEpisodes\\?\\{inclusionMode:[^,}]+\\.)INCLUDE_ALWAYS",
             "replace": "$1INCLUDE_IF_NOT_EMPTY"
+        },
+        "GenreHubHashFix": {
+            "version": {
+                "fr": "1.1.85",
+                "to": "1.1.99"
+            },
+            "match": "((sha256Hash: *await|return [^,]+,) *)([^ (]+[.]k[.]hash)[(]([^.()]+)[.]body[)]",
+            "replace": "$1(\"browsePage\"===$4.name?\"d8346883162a16a62a5b69e73e70c66a68c27b14265091cd9e1517f48334bbb3\":$3($4.body))"
         }
     }
 }
