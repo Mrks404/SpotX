@@ -796,6 +796,14 @@
                     "fr": "1.2.88",
                     "to": ""
                 }
+            },
+            "ad_reporting": {
+                "name": "enable_ad_reporting",
+                "description": "Gates the report ad menu item in the ad overflow context menu",
+                "version": {
+                    "fr": "1.2.89",
+                    "to": ""
+                }
             }
         },
         "EnableExp": {
@@ -1911,6 +1919,14 @@
                 "native_description": "Kill switch for ad feedback on embedded NPV display format",
                 "version": {
                     "fr": "1.2.86",
+                    "to": ""
+                }
+            },
+            "LikedSongsMakePlaylist": {
+                "name": "enableLikedSongsMakePlaylist",
+                "native_description": "Show 'Make this a playlist' button when filtering Liked Songs by genre",
+                "version": {
+                    "fr": "1.2.89",
                     "to": ""
                 }
             }
