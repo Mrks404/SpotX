@@ -23,6 +23,9 @@ param
     [Parameter(HelpMessage = 'Custom path to Spotify installation directory. Default is %APPDATA%\Spotify.')]
     [string]$SpotifyPath,
 
+    [Parameter(HelpMessage = 'Skip pause before exit')]
+    [switch]$no_pause,
+
     [Parameter(HelpMessage = "Use github.io mirror instead of raw.githubusercontent.")]
     [Alias("m")]
     [switch]$mirror,
@@ -366,15 +369,17 @@ function Stop-Script {
 
     Write-Host $Message
 
-    switch ($Host.Name) {
-        "Windows PowerShell ISE Host" {
-            pause
-            break
-        }
-        default {
-            Write-Host ($lang).PressAnyKey
-            [void][System.Console]::ReadKey($true)
-            break
+    if (-not $no_pause) {
+        switch ($Host.Name) {
+            "Windows PowerShell ISE Host" {
+                pause
+                break
+            }
+            default {
+                Write-Host ($lang).PressAnyKey
+                [void][System.Console]::ReadKey($true)
+                break
+            }
         }
     }
     Exit
@@ -402,7 +407,7 @@ function CallLang($clg) {
     }
     catch {
         Write-Host "Error loading $clg language"
-        Pause
+        if (-not $no_pause) { Pause }
         Exit
     }
 }
@@ -3078,7 +3083,7 @@ if ($test_spa) {
                 else {
                     $binary_exe_bak = [System.IO.Path]::GetFileName($exe_bak)
                     Write-Warning ("Backup copy {0} not found. Please reinstall Spotify and run SpotX again" -f $binary_exe_bak)
-                    Pause
+                    if (-not $no_pause) { Pause }
                     Exit
                 }
 
@@ -3089,7 +3094,7 @@ if ($test_spa) {
                 else {
                     $binary_chrome_elf_bak = [System.IO.Path]::GetFileName($chrome_elf_bak)
                     Write-Warning ("Backup copy {0} not found. Please reinstall Spotify and run SpotX again" -f $binary_chrome_elf_bak)
-                    Pause
+                    if (-not $no_pause) { Pause }
                     Exit
                 }
 
@@ -3097,7 +3102,7 @@ if ($test_spa) {
         }
         else {
             Write-Host ($lang).NoRestore`n
-            Pause
+            if (-not $no_pause) { Pause }
             Exit
         }
 
@@ -3339,7 +3344,7 @@ if ($regex1 -and $regex2 -and $regex3 -and $regex4 -and $regex5) {
 if (-not (Test-Path -LiteralPath $spotify_binary_bak)) {
     $name_binary = [System.IO.Path]::GetFileName($spotify_binary_bak)
     Write-Warning ("Backup copy {0} not found. Please reinstall Spotify and run SpotX again" -f $name_binary)
-    Pause
+    if (-not $no_pause) { Pause }
     Exit
 }
 
