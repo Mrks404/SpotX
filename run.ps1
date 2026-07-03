@@ -2,7 +2,7 @@
 param
 (
     [Parameter(HelpMessage = 'Latest recommended Spotify version for Windows 10+.')]
-    [string]$latest_full = "1.2.92",
+    [string]$latest_full = "1.2.93",
 
     [Parameter(HelpMessage = 'Latest supported Spotify version for Windows 7-8.1')]
     [string]$last_win7_full = "1.2.5.1006.g22820f93",
@@ -1872,9 +1872,9 @@ function Helper($paramname, [switch]$CheckOnly) {
     }
     switch ( $paramname ) {
         "HtmlLicMin" {
-            # licenses.html minification
+            # Licenses HTML minification
             $name = "patches.json.others."
-            $n = "licenses.html"
+            $n = $licensesFileName
             $contents = "htmlmin"
             $json = $webjson.others
         }
@@ -2332,7 +2332,10 @@ function extract ($counts, $method, $name, $helper, $add, $patch) {
                     $xpui_spa_patch = Join-Path (Join-Path $spotifyDirectory 'Apps') 'xpui.spa'
                     $zip = [System.IO.Compression.ZipFile]::Open($xpui_spa_patch, 'update')
                     $file = $zip.GetEntry($name)
-                    if ($null -eq $file) { throw "Archive entry not found: $name" }
+                    if ($null -eq $file) {
+                        Write-Warning "Error: Archive entry not found: $name"
+                        return
+                    }
                     $reader = New-Object System.IO.StreamReader($file.Open())
                 }
                 elseif ($method -eq "nonezip") {
@@ -3269,9 +3272,10 @@ if ($test_spa) {
     # Remove RTL and minification of all *.css
     extract -counts 'more' -name '*.css' -helper 'Cssmin'
 
-    # licenses.html minification
+    # Licenses HTML minification
 
-    extract -counts 'one' -method 'zip' -name 'licenses.html' -helper 'HtmlLicMin'
+    $licensesFileName = if ([version]$offline -ge [version]'1.2.93') { 'ui-licenses.html' } else { 'licenses.html' }
+    extract -counts 'one' -method 'zip' -name $licensesFileName -helper 'HtmlLicMin'
     # blank.html minification
     extract -counts 'one' -method 'zip' -name 'blank.html' -helper 'HtmlBlank'
 
