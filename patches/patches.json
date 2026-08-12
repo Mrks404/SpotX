@@ -868,6 +868,30 @@
                     "fr": "1.2.95",
                     "to": ""
                 }
+            },
+            "AdsSurfaceStateForAdOrchestration": {
+                "name": "useAdsSurfaceStateForAdOrchestration",
+                "description": "Use ads-owned NPV and cinema surface state for ad orchestration",
+                "version": {
+                    "fr": "1.2.96",
+                    "to": ""
+                }
+            },
+            "HptoHarmonyVideoPlayer": {
+                "name": "enableHptoHarmonyVideoPlayer",
+                "description": "Enable the Harmony-based video player for HPTO home video ads, replacing the Betamax player",
+                "version": {
+                    "fr": "1.2.96",
+                    "to": ""
+                }
+            },
+            "SidekickFeedbackBanner": {
+                "name": "enableSidekickFeedbackBanner",
+                "description": "Show the feedback banner in the Sidekick chat",
+                "version": {
+                    "fr": "1.2.96",
+                    "to": ""
+                }
             }
         },
         "EnableExp": {
@@ -1480,7 +1504,7 @@
                 "native_description": "Disable the Premium Only Modal",
                 "version": {
                     "fr": "1.2.39",
-                    "to": ""
+                    "to": "1.2.95"
                 }
             },
             "CenteredLayout": {
@@ -1966,7 +1990,7 @@
                 "native_description": "Show video preference settings for users to control video playback types",
                 "version": {
                     "fr": "1.2.86",
-                    "to": ""
+                    "to": "1.2.95"
                 }
             },
             "VideoQualityEnabled": {
@@ -2030,6 +2054,38 @@
                 "native_description": "Enable the new entity header design",
                 "version": {
                     "fr": "1.2.95",
+                    "to": ""
+                }
+            },
+            "ContextMenuLayoutV2": {
+                "name": "enableContextMenuLayoutV2",
+                "native_description": "Enables the Context Menu 2.0 layout",
+                "version": {
+                    "fr": "1.2.96",
+                    "to": ""
+                }
+            },
+            "CanvasContextMenuToggle": {
+                "name": "enableCanvasContextMenuToggle",
+                "native_description": "Enables the Canvas context menu toggle",
+                "version": {
+                    "fr": "1.2.96",
+                    "to": ""
+                }
+            },
+            "MusicVideos": {
+                "name": "enableMusicVideos",
+                "native_description": "Whether music videos are available for the current user. Override to true for supported products and markets",
+                "version": {
+                    "fr": "1.2.96",
+                    "to": ""
+                }
+            },
+            "VideoShelfPreviews": {
+                "name": "enableVideoShelfPreviews",
+                "native_description": "Enable video previews on hover in video shelf cards",
+                "version": {
+                    "fr": "1.2.96",
                     "to": ""
                 }
             }

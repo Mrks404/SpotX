@@ -2,7 +2,7 @@
 param
 (
     [Parameter(HelpMessage = 'Latest recommended Spotify version for Windows 10+.')]
-    [string]$latest_full = "1.2.95",
+    [string]$latest_full = "1.2.96",
 
     [Parameter(HelpMessage = 'Latest supported Spotify version for Windows 7-8.1')]
     [string]$last_win7_full = "1.2.5.1006.g22820f93",
@@ -3121,6 +3121,250 @@ function Read-X64BlockSlotsField {
     throw "Unexpected block_slots field instruction"
 }
 
+function Get-X64BlockSlotsMapperSequenceEnum {
+    param(
+        [byte[]]$Bytes,
+        [int]$SequenceOffset,
+        [int]$BranchOffset,
+        [bool]$MatchTaken = $true
+    )
+
+    $movEcxR8d = Convert-HexStringToBytes '41 8B C8'
+    $subEcx8 = Convert-HexStringToBytes '83 E9'
+    $subEcx32 = Convert-HexStringToBytes '81 E9'
+    $cmpEcx8 = Convert-HexStringToBytes '83 F9'
+    $cmpEcx32 = Convert-HexStringToBytes '81 F9'
+    if (-not [BinaryScanner]::MatchBytes($Bytes, $SequenceOffset, $movEcxR8d)) {
+        return @()
+    }
+
+    $matches = @()
+    for ($enumValue = 1; $enumValue -le 0x3FF; $enumValue++) {
+        $ecx = [int64]$enumValue
+        $zeroFlag = $false
+        $hasFlags = $false
+        $cursor = $SequenceOffset + $movEcxR8d.Length
+        $valid = $true
+        $matched = $false
+
+        while ($cursor -le $BranchOffset) {
+            if ([BinaryScanner]::MatchBytes($Bytes, $cursor, $subEcx8)) {
+                $ecx -= [int64](Read-X64SignedByte -Bytes $Bytes -Offset ($cursor + 2))
+                $zeroFlag = ($ecx -eq 0)
+                $hasFlags = $true
+                $cursor += 3
+                continue
+            }
+            if ([BinaryScanner]::MatchBytes($Bytes, $cursor, $subEcx32)) {
+                $ecx -= [int64][BitConverter]::ToInt32($Bytes, $cursor + 2)
+                $zeroFlag = ($ecx -eq 0)
+                $hasFlags = $true
+                $cursor += 6
+                continue
+            }
+            if ([BinaryScanner]::MatchBytes($Bytes, $cursor, $cmpEcx8)) {
+                $compareValue = [int64](Read-X64SignedByte -Bytes $Bytes -Offset ($cursor + 2))
+                $zeroFlag = ($ecx -eq $compareValue)
+                $hasFlags = $true
+                $cursor += 3
+                continue
+            }
+            if ([BinaryScanner]::MatchBytes($Bytes, $cursor, $cmpEcx32)) {
+                $compareValue = [int64][BitConverter]::ToInt32($Bytes, $cursor + 2)
+                $zeroFlag = ($ecx -eq $compareValue)
+                $hasFlags = $true
+                $cursor += 6
+                continue
+            }
+
+            $branchLength = 0
+            $branchOnEqual = $false
+            if (($cursor + 2) -le $Bytes.Length -and ($Bytes[$cursor] -eq 0x74 -or $Bytes[$cursor] -eq 0x75)) {
+                $branchLength = 2
+                $branchOnEqual = ($Bytes[$cursor] -eq 0x74)
+            }
+            elseif (($cursor + 6) -le $Bytes.Length -and $Bytes[$cursor] -eq 0x0F -and
+                ($Bytes[$cursor + 1] -eq 0x84 -or $Bytes[$cursor + 1] -eq 0x85)) {
+                $branchLength = 6
+                $branchOnEqual = ($Bytes[$cursor + 1] -eq 0x84)
+            }
+            else {
+                $valid = $false
+                break
+            }
+
+            if (-not $hasFlags) {
+                $valid = $false
+                break
+            }
+            $branchTaken = if ($branchOnEqual) { $zeroFlag } else { -not $zeroFlag }
+            if ($cursor -eq $BranchOffset) {
+                $matched = if ($MatchTaken) { $branchTaken } else { -not $branchTaken }
+                break
+            }
+            if ($branchTaken) {
+                $valid = $false
+                break
+            }
+            $cursor += $branchLength
+        }
+
+        if ($valid -and $matched) {
+            $matches += [uint32]$enumValue
+        }
+    }
+
+    return $matches
+}
+
+function Get-BlockSlotsMapperEnumValue {
+    param(
+        [byte[]]$Bytes,
+        [object]$PeInfo,
+        [int64]$MapperStartRva,
+        [int64]$MapperEndRva,
+        [int[]]$AnchorRefs
+    )
+
+    $mapperOffset = Get-PEOffsetFromRva -Sections $PeInfo.Sections -Rva $MapperStartRva
+    if ($null -eq $mapperOffset) {
+        throw 'slot_is_disabled mapper offset was not found'
+    }
+
+    $mapperOffset = [int]$mapperOffset
+    $mapperEndOffset = [int64]$mapperOffset + ($MapperEndRva - $MapperStartRva)
+    if ($mapperEndOffset -le $mapperOffset -or $mapperEndOffset -gt $Bytes.Length) {
+        throw 'slot_is_disabled mapper range is invalid'
+    }
+
+    $stringCases = @(
+        [PSCustomObject]@{
+            PrefixLength = 20
+            Pattern      = Convert-HexStringToBytes '0F 57 C0 0F 11 02 48 89 7A 10 48 89 7A 18 41 B8 10 00 00 00 48 8D 15 00 00 00 00'
+            Mask         = Convert-HexStringToBytes 'FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00'
+            DispatchMode = 'Target'
+        },
+        [PSCustomObject]@{
+            PrefixLength = 18
+            Pattern      = Convert-HexStringToBytes '0F 57 C0 0F 11 02 48 89 7A 10 48 89 7A 18 44 8D 41 0F 48 8D 15 00 00 00 00'
+            Mask         = Convert-HexStringToBytes 'FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00'
+            DispatchMode = 'Fallthrough'
+        }
+    )
+    $movEcxR8d = Convert-HexStringToBytes '41 8B C8'
+    $cmpR8d8 = Convert-HexStringToBytes '41 83 F8'
+    $cmpR8d32 = Convert-HexStringToBytes '41 81 F8'
+    $enumValues = @{}
+
+    foreach ($anchorRef in $AnchorRefs) {
+        if (([int64]$anchorRef + 7) -gt $mapperEndOffset) {
+            continue
+        }
+
+        foreach ($stringCase in $stringCases) {
+            $caseOffset = [int]$anchorRef - $stringCase.PrefixLength
+            if ($caseOffset -lt $mapperOffset -or
+                -not [BinaryScanner]::MatchMaskedBytes($Bytes, $caseOffset, $stringCase.Pattern, $stringCase.Mask)) {
+                continue
+            }
+
+            $dispatches = @()
+            if ($stringCase.DispatchMode -eq 'Target') {
+                for ($branchOffset = $mapperOffset; $branchOffset -lt $caseOffset; $branchOffset++) {
+                    if (($Bytes[$branchOffset] -eq 0x74 -or $Bytes[$branchOffset] -eq 0x75) -and
+                        ($branchOffset + 2) -le $mapperEndOffset) {
+                        $branchOnEqual = ($Bytes[$branchOffset] -eq 0x74)
+                        $branchTarget = [int64]$branchOffset + 2 +
+                            (Read-X64SignedByte -Bytes $Bytes -Offset ($branchOffset + 1))
+                    }
+                    elseif ($Bytes[$branchOffset] -eq 0x0F -and ($branchOffset + 6) -le $mapperEndOffset -and
+                        ($Bytes[$branchOffset + 1] -eq 0x84 -or $Bytes[$branchOffset + 1] -eq 0x85)) {
+                        $branchOnEqual = ($Bytes[$branchOffset + 1] -eq 0x84)
+                        $branchTarget = [int64]$branchOffset + 6 + [BitConverter]::ToInt32($Bytes, $branchOffset + 2)
+                    }
+                    else {
+                        continue
+                    }
+
+                    if ($branchTarget -eq $caseOffset) {
+                        $dispatches += [PSCustomObject]@{
+                            Offset        = $branchOffset
+                            BranchOnEqual = $branchOnEqual
+                            MatchTaken    = $true
+                        }
+                    }
+                }
+            }
+            else {
+                if ($caseOffset -ge ($mapperOffset + 6) -and $Bytes[$caseOffset - 6] -eq 0x0F -and
+                    ($Bytes[$caseOffset - 5] -eq 0x84 -or $Bytes[$caseOffset - 5] -eq 0x85)) {
+                    $branchOffset = $caseOffset - 6
+                    $branchOnEqual = ($Bytes[$caseOffset - 5] -eq 0x84)
+                    $branchTarget = [int64]$caseOffset + [BitConverter]::ToInt32($Bytes, $caseOffset - 4)
+                }
+                elseif ($caseOffset -ge ($mapperOffset + 2) -and
+                    ($Bytes[$caseOffset - 2] -eq 0x74 -or $Bytes[$caseOffset - 2] -eq 0x75)) {
+                    $branchOffset = $caseOffset - 2
+                    $branchOnEqual = ($Bytes[$caseOffset - 2] -eq 0x74)
+                    $branchTarget = [int64]$caseOffset +
+                        (Read-X64SignedByte -Bytes $Bytes -Offset ($caseOffset - 1))
+                }
+                else {
+                    continue
+                }
+
+                if ($branchTarget -lt $mapperOffset -or $branchTarget -ge $mapperEndOffset -or $branchTarget -eq $caseOffset) {
+                    continue
+                }
+                $dispatches += [PSCustomObject]@{
+                    Offset        = $branchOffset
+                    BranchOnEqual = $branchOnEqual
+                    MatchTaken    = $false
+                }
+            }
+
+            foreach ($dispatch in $dispatches) {
+                $branchOffset = [int]$dispatch.Offset
+                $selectsEquality = ($dispatch.BranchOnEqual -eq $dispatch.MatchTaken)
+                if ($selectsEquality -and $branchOffset -ge ($mapperOffset + 4) -and
+                    [BinaryScanner]::MatchBytes($Bytes, $branchOffset - 4, $cmpR8d8)) {
+                    $enumValue = [int64](Read-X64SignedByte -Bytes $Bytes -Offset ($branchOffset - 1))
+                    if ($enumValue -gt 0 -and $enumValue -le 0x3FF) {
+                        $enumValues['{0:X}' -f $enumValue] = [uint32]$enumValue
+                    }
+                }
+                if ($selectsEquality -and $branchOffset -ge ($mapperOffset + 7) -and
+                    [BinaryScanner]::MatchBytes($Bytes, $branchOffset - 7, $cmpR8d32)) {
+                    $enumValue = [BitConverter]::ToUInt32($Bytes, $branchOffset - 4)
+                    if ($enumValue -gt 0 -and $enumValue -le 0x3FF) {
+                        $enumValues['{0:X}' -f $enumValue] = $enumValue
+                    }
+                }
+
+                $sequenceStart = [Math]::Max($mapperOffset, $branchOffset - 0x100)
+                for ($candidateOffset = $sequenceStart; $candidateOffset -lt $branchOffset; $candidateOffset++) {
+                    if (-not [BinaryScanner]::MatchBytes($Bytes, $candidateOffset, $movEcxR8d)) {
+                        continue
+                    }
+                    $sequenceEnums = @(Get-X64BlockSlotsMapperSequenceEnum `
+                            -Bytes $Bytes `
+                            -SequenceOffset $candidateOffset `
+                            -BranchOffset $branchOffset `
+                            -MatchTaken $dispatch.MatchTaken)
+                    foreach ($enumValue in $sequenceEnums) {
+                        $enumValues['{0:X}' -f [uint32]$enumValue] = [uint32]$enumValue
+                    }
+                }
+            }
+        }
+    }
+
+    if ($enumValues.Count -ne 1) {
+        throw "Expected one slot_is_disabled enum value, found $($enumValues.Count)"
+    }
+    return [uint32](@($enumValues.Values)[0])
+}
+
 function Get-BlockSlotsPredicateInfo {
     param(
         [byte[]]$Bytes,
@@ -3277,12 +3521,6 @@ function Get-BlockSlotsPredicateInfo {
             }
         }
 
-        if ($flagField.Value -ne ($valueField.Value + 1) -or
-            $valueField.Value -ne ($gateField.Value + 0x18) -or
-            $fallbackField.Value -ne ($gateField.Value - 8)) {
-            return $null
-        }
-
         $jumpDisplacement = [int64]$returnFalseOffset - ([int64]$patchOffset + 2)
         if ($jumpDisplacement -lt 0 -or $jumpDisplacement -gt 0x7F) {
             return $null
@@ -3367,11 +3605,22 @@ function Find-BlockSlotsBinaryPatchLocation {
         if ($anchorFunctionSize -lt 0x100 -or $anchorFunctionSize -gt 0x4000) {
             throw 'Unexpected slot_is_disabled mapper function size'
         }
-        $anchorFunctions['{0:X}' -f [int64]$anchorFunction[0]] = $true
+        $anchorFunctions['{0:X}' -f [int64]$anchorFunction[0]] = [PSCustomObject]@{
+            StartRva = [int64]$anchorFunction[0]
+            EndRva   = [int64]$anchorFunction[1]
+        }
     }
     if ($anchorFunctions.Count -ne 1) {
         throw "Expected one slot_is_disabled mapper function, found $($anchorFunctions.Count)"
     }
+
+    $mapperFunction = @($anchorFunctions.Values)[0]
+    $slotDisabledEnum = Get-BlockSlotsMapperEnumValue `
+        -Bytes $Bytes `
+        -PeInfo $PeInfo `
+        -MapperStartRva $mapperFunction.StartRva `
+        -MapperEndRva $mapperFunction.EndRva `
+        -AnchorRefs $anchorRefs
 
     $callPatterns = @(
         [PSCustomObject]@{
@@ -3391,7 +3640,6 @@ function Find-BlockSlotsBinaryPatchLocation {
     $textStart = [int]$text.RawPtr
     $textEnd = [int64]$text.RawPtr + [int64]$text.RawSize
     $validatedTargets = @{}
-    $ambiguousEnums = @{}
 
     foreach ($callPattern in $callPatterns) {
         $searchOffset = $textStart
@@ -3410,7 +3658,7 @@ function Find-BlockSlotsBinaryPatchLocation {
 
             try {
                 $enumValue = [BitConverter]::ToUInt32($Bytes, $callOffset + $callPattern.EnumOffset)
-                if ($enumValue -eq 0 -or $enumValue -gt 0x3FF) {
+                if ($enumValue -ne $slotDisabledEnum) {
                     continue
                 }
 
@@ -3462,12 +3710,7 @@ function Find-BlockSlotsBinaryPatchLocation {
                     }
                 }
                 else {
-                    if ([uint32]$validatedTargets[$key].EnumValue -ne [uint32]$enumValue) {
-                        $ambiguousEnums[$key] = $true
-                    }
-                    else {
-                        $validatedTargets[$key].CallerCount++
-                    }
+                    $validatedTargets[$key].CallerCount++
                 }
             }
             catch {
@@ -3478,9 +3721,6 @@ function Find-BlockSlotsBinaryPatchLocation {
 
     if ($validatedTargets.Count -eq 0) {
         throw 'block_slots semantic function was not found'
-    }
-    if ($ambiguousEnums.Count -gt 0) {
-        throw 'block_slots semantic callers use different enum values'
     }
     if ($validatedTargets.Count -ne 1) {
         throw "Expected one block_slots semantic function, found $($validatedTargets.Count)"
