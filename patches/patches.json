@@ -892,6 +892,30 @@
                     "fr": "1.2.96",
                     "to": ""
                 }
+            },
+            "VideoAdTerminatedEvent": {
+                "name": "enableVideoAdTerminatedEvent",
+                "description": "Fire terminated events for non-complete video ad endings on desktop",
+                "version": {
+                    "fr": "1.2.98",
+                    "to": ""
+                }
+            },
+            "SponsoredPlaylistCacheAlignedRefresh": {
+                "name": "enableSponsoredPlaylistCacheAlignedRefresh",
+                "description": "Uses a 15-minute sponsored playlist refresh interval aligned with the service TTL",
+                "version": {
+                    "fr": "1.2.98",
+                    "to": ""
+                }
+            },
+            "AdBreakTimeRemaining": {
+                "name": "showAdBreakTimeRemaining",
+                "description": "Show remaining ad-break time countdown in NPV and cinema-mode ad headers",
+                "version": {
+                    "fr": "1.2.99",
+                    "to": ""
+                }
             }
         },
         "EnableExp": {
@@ -1585,7 +1609,7 @@
                 "native_description": "Enable the support for Nearby Jams feature in the Device Picker",
                 "version": {
                     "fr": "1.2.52",
-                    "to": ""
+                    "to": "1.2.97"
                 }
             },
             "TrackBans": {
@@ -2046,7 +2070,7 @@
                 "native_description": "Config for clearing the current leaderboard ad and hiding the leaderboard container when the ad slot returns an empty response",
                 "version": {
                     "fr": "1.2.94",
-                    "to": ""
+                    "to": "1.2.97"
                 }
             },
             "EntityHeaderNew": {
