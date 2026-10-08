@@ -464,7 +464,7 @@ function Get-SpotifyVersionNumber {
         [string]$SpotifyVersion
     )
 
-    return [Version]($SpotifyVersion -replace '\.g[0-9a-f]{8}$', '')
+    return [Version]($SpotifyVersion -replace '\.g[0-9a-f]+$', '')
 }
 
 function Get-SpotifyInstallerArchitecture {
@@ -554,7 +554,7 @@ function Resolve-SpotifyInstallerVersionFromManifest {
 
     $entry = $selectedVersion.Value
     $fullVersion = [string]$entry.fullversion
-    if ($fullVersion -notmatch '^\d+\.\d+\.\d+\.\d+\.g[0-9a-f]{8}$') {
+    if ($fullVersion -notmatch '^\d+\.\d+\.\d+\.\d+\.g[0-9a-f]+$') {
         throw "Spotify version $($selectedVersion.Name) has invalid fullversion in versions manifest"
     }
 
@@ -596,7 +596,7 @@ $spotifyTemporaryDownloadVersion = "1.2.86.502.g8cd7fb22"
 $spotifyVersionsManifestUrl = "https://raw.githubusercontent.com/LoaderSpot/table/refs/heads/main/table/versions.json"
 $systemArchitecture = Get-SystemArchitecture
 
-$match_v = "^(?<version>\d+\.\d+\.\d+(?:\.\d+(?:\.g[0-9a-f]{8})?)?)(?:-\d+)?$"
+$match_v = "^(?<version>\d+\.\d+\.\d+(?:\.\d+(?:\.g[0-9a-f]+)?)?)(?:-\d+)?$"
 $versionIsSupported = $false
 if ($version) {
     if ($version -match $match_v) {
@@ -1463,7 +1463,7 @@ function Kill-Spotify {
 }
 
 
-# Defer removal until the replacement is ready
+# Defer Store removal until the replacement installer is downloaded
 if ($win10 -or $win11 -or $win8_1 -or $win8 -or $win12) {
 
     if (Get-AppxPackage -Name SpotifyAB.SpotifyMusic) {
@@ -5049,7 +5049,6 @@ function Test-SpotifyInstall {
 function Expand-SpotifyInstaller {
     param([string]$DownloadFolder, [version]$ExpectedVersion, [string]$ExpectedArchitecture)
 
-    downloadSp -DownloadFolder $DownloadFolder
     $setupExe = Join-Path $DownloadFolder 'SpotifySetup.exe'
     $destination = Join-Path $DownloadFolder 'client'
     $process = $null
@@ -5104,13 +5103,12 @@ try {
         Write-Host ($lang).DownSpoti2`n
         $architecture = Get-SpotifyInstallerArchitecture -SystemArchitecture $systemArchitecture `
             -SpotifyVersion ([version]$online) -LastX86SupportedVersion $last_x86
-        $preparedClient = Expand-SpotifyInstaller -DownloadFolder $tempDirectory `
-            -ExpectedVersion ([version]$online) -ExpectedArchitecture $architecture
-        Write-Host
+        downloadSp -DownloadFolder $tempDirectory
     }
 
-    Kill-Spotify
+    # Store detection runs before /extract in the Spotify installer
     if ($uninstallStoreSpotify) {
+        Kill-Spotify
         $previousProgressPreference = $ProgressPreference
         try {
             $ProgressPreference = 'SilentlyContinue'
@@ -5120,6 +5118,14 @@ try {
         }
         finally { $ProgressPreference = $previousProgressPreference }
     }
+
+    if ($installSpotify) {
+        $preparedClient = Expand-SpotifyInstaller -DownloadFolder $tempDirectory `
+            -ExpectedVersion ([version]$online) -ExpectedArchitecture $architecture
+        Write-Host
+    }
+
+    if (!$uninstallStoreSpotify) { Kill-Spotify }
 
     if ($installSpotify) {
         $null = Unlock-Folder
