@@ -27,7 +27,7 @@
         "playlistsponsor": {
             "version": {
                 "fr": "1.1.59",
-                "to": ""
+                "to": "1.2.77"
             },
             "match": "allSponsorships",
             "replace": ""
@@ -2119,6 +2119,14 @@
                 "native_description": "Enable video previews on hover in video shelf cards",
                 "version": {
                     "fr": "1.2.96",
+                    "to": ""
+                }
+            },
+            "PiPMiniPlayerPositionRestore": {
+                "name": "enablePiPMiniPlayerPositionRestore",
+                "native_description": "Enable restoring saved position and size when opening the PiP miniplayer",
+                "version": {
+                    "fr": "1.3.2",
                     "to": ""
                 }
             }
